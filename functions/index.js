@@ -39,7 +39,7 @@ const dataRemovalProperties = DATA_REMOVAL_KEYS.reduce((acc, key) => ({
   [key]: undefined,
 }), {})
 
-const processDaily = (item) => {
+const createDailyTaskInstance = (item) => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
@@ -50,7 +50,7 @@ const processDaily = (item) => {
   return item
 }
 
-const processWeekly = (item) => {
+const createWeeklyTaskInstance = (item) => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
@@ -70,7 +70,7 @@ const processWeekly = (item) => {
   return item
 }
 
-const processMonthly = (item) => {
+const createMonthlyTaskInstance = (item) => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
@@ -92,19 +92,19 @@ const processMonthly = (item) => {
   return item
 }
 
-const processRepeatFrequency = (item, frequency) => ({
-  Daily: processDaily,
-  Weekly: processWeekly,
-  Monthly: processMonthly,
+const createTaskInstance = (item, frequency) => ({
+  Daily: createDailyTaskInstance,
+  Weekly: createWeeklyTaskInstance,
+  Monthly: createMonthlyTaskInstance,
 }[frequency]?.(item))
 
-const processRepeat = (items) => items?.reduce((acc, item) => {
+const createTaskInstances = (items) => items?.reduce((acc, item) => {
   const repeatFrequency = (
     item.properties[REPEAT_FREQUENCY_PROPERTY_NAME]?.select?.name
   )
   functions.logger.log('repeatFrequency', repeatFrequency)
   if (!repeatFrequency) return acc
-  const processedItem = processRepeatFrequency(item, repeatFrequency)
+  const processedItem = createTaskInstance(item, repeatFrequency)
   if (!processedItem) return acc
   functions.logger.log('processedItem', processedItem)
   return [...acc, processedItem]
@@ -130,7 +130,7 @@ const stripPropertyIdAndType = (items) => items?.map((item) => ({
 }))
 
 const processData = pipe(
-    processRepeat,
+    createTaskInstances,
     (x) => {
       functions.logger.log('Post processRepeat', x)
       return x
