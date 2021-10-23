@@ -9,6 +9,8 @@ const DATABASE_ID = functions.config().notion.database_id
 const notion = new Client({auth: NOTION_KEY})
 
 const CREATED_AT_PROPERTY_NAME = 'Created At'
+const DO_PROPERTY_NAME = 'Do'
+const REPEATING_PROPERTY_NAME = 'Repeating'
 const REPEAT_DATES_MONTHLY_PROPERTY_NAME = 'Repeat Dates (Monthly)'
 const REPEAT_DAYS_WEEKLY_PROPERTY_NAME = 'Repeat Days (Weekly)'
 const REPEAT_EVERY_PROPERTY_NAME = 'Repeat Every'
@@ -98,9 +100,10 @@ const processRepeatFrequency = (item, frequency) => ({
 
 const processRepeat = (items) => items?.reduce((acc, item) => {
   const repeatFrequency = (
-    item.properties[REPEAT_FREQUENCY_PROPERTY_NAME].select.name
+    item.properties[REPEAT_FREQUENCY_PROPERTY_NAME]?.select?.name
   )
   functions.logger.log('repeatFrequency', repeatFrequency)
+  if (!repeatFrequency) return acc
   const processedItem = processRepeatFrequency(item, repeatFrequency)
   if (!processedItem) return acc
   functions.logger.log('processedItem', processedItem)
@@ -112,7 +115,8 @@ const manipulateProperties = (items) => items?.map((item) => ({
   properties: {
     ...item.properties,
     ...dataRemovalProperties,
-    Repeating: {checkbox: true},
+    [REPEATING_PROPERTY_NAME]: {checkbox: true},
+    [DO_PROPERTY_NAME]: {date: {start: moment().format('YYYY-MM-DD')}},
   },
 }))
 
