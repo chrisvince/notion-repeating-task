@@ -177,7 +177,7 @@ const queryDatabase = async () => {
 }
 
 exports.createNotionRepeatedTasks =
-  functions.pubsub.schedule('0 2 * * *')
+  functions.pubsub.schedule('0 0 * * *')
       .timeZone('America/New_York').onRun(async () => {
         const data = await queryDatabase()
         const items = processData(data)
