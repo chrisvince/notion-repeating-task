@@ -39,7 +39,7 @@ const dataRemovalProperties = DATA_REMOVAL_KEYS.reduce((acc, key) => ({
   [key]: undefined,
 }), {})
 
-const createDailyTaskInstance = (item) => {
+const convertDailyTemplateToTaskInstance = (item) => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
@@ -50,7 +50,7 @@ const createDailyTaskInstance = (item) => {
   return item
 }
 
-const createWeeklyTaskInstance = (item) => {
+const convertWeeklyTemplateToTaskInstance = (item) => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
@@ -70,7 +70,7 @@ const createWeeklyTaskInstance = (item) => {
   return item
 }
 
-const createMonthlyTaskInstance = (item) => {
+const convertMonthlyTemplateToTaskInstance = (item) => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
@@ -92,23 +92,37 @@ const createMonthlyTaskInstance = (item) => {
   return item
 }
 
-const createTaskInstance = (item, frequency) => ({
-  Daily: createDailyTaskInstance,
-  Weekly: createWeeklyTaskInstance,
-  Monthly: createMonthlyTaskInstance,
+const convertTemplateToTaskInstance = (item, frequency) => ({
+  Daily: convertDailyTemplateToTaskInstance,
+  Weekly: convertWeeklyTemplateToTaskInstance,
+  Monthly: convertMonthlyTemplateToTaskInstance,
 }[frequency]?.(item))
 
-const createTaskInstances = (items) => items?.reduce((acc, item) => {
-  const repeatFrequency = (
-    item.properties[REPEAT_FREQUENCY_PROPERTY_NAME]?.select?.name
-  )
-  functions.logger.log('repeatFrequency', repeatFrequency)
-  if (!repeatFrequency) return acc
-  const processedItem = createTaskInstance(item, repeatFrequency)
-  if (!processedItem) return acc
-  functions.logger.log('processedItem', processedItem)
-  return [...acc, processedItem]
-}, [])
+const convertTemplatesToTaskInstances = (
+  (items) => items?.reduce((acc, item) => {
+    const repeatFrequency = (
+      item.properties[REPEAT_FREQUENCY_PROPERTY_NAME]?.select?.name
+    )
+    if (!repeatFrequency) return acc
+    const taskInstance = convertTemplateToTaskInstance(item, repeatFrequency)
+    if (!taskInstance) return acc
+    return [...acc, taskInstance]
+  }, [])
+)
+
+const stripPropertyIdAndType = (items) => items?.map((item) => ({
+  ...item,
+  properties: {
+    ...item.properties,
+    id: undefined,
+    type: undefined,
+  },
+}))
+
+const createTaskInstancesFromTemplates = pipe(
+    convertTemplatesToTaskInstances,
+    stripPropertyIdAndType,
+)
 
 const manipulateProperties = (items) => items?.map((item) => ({
   ...item,
@@ -120,31 +134,17 @@ const manipulateProperties = (items) => items?.map((item) => ({
   },
 }))
 
-const stripPropertyIdAndType = (items) => items?.map((item) => ({
-  ...item,
-  properties: {
-    ...item.properties,
-    id: undefined,
-    type: undefined,
-  },
-}))
+const logStage = (label) => (data) => {
+  functions.logger.log(`${label}: `, data)
+  return data
+}
 
 const processData = pipe(
-    createTaskInstances,
-    (x) => {
-      functions.logger.log('Post processRepeat', x)
-      return x
-    },
+    logStage('processData starting'),
+    createTaskInstancesFromTemplates,
+    logStage('createTaskInstancesFromTemplates completed'),
     manipulateProperties,
-    (x) => {
-      functions.logger.log('Post manipulateProperties', x)
-      return x
-    },
-    stripPropertyIdAndType,
-    (x) => {
-      functions.logger.log('Post stripPropertyIdAndType', x)
-      return x
-    },
+    logStage('manipulateProperties completed'),
 )
 
 const addItem = async (properties) => {
@@ -180,7 +180,6 @@ exports.createNotionRepeatedTasks =
   functions.pubsub.schedule('0 2 * * *')
       .timeZone('America/New_York').onRun(async () => {
         const data = await queryDatabase()
-        functions.logger.log('Post queryDatabase', data)
         const items = processData(data)
         const createPromises = items.map((item) => addItem(item.properties))
         await Promise.all(createPromises)
