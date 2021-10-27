@@ -2,6 +2,7 @@ const functions = require('firebase-functions')
 const {Client} = require('@notionhq/client')
 const {pipe} = require('ramda')
 const moment = require('moment')
+const util = require('util')
 
 const NOTION_KEY = functions.config().notion.key
 const DATABASE_ID = functions.config().notion.database_id
@@ -135,7 +136,10 @@ const manipulateProperties = (items) => items?.map((item) => ({
 }))
 
 const logStage = (label) => (data) => {
-  functions.logger.log(`${label}: `, data)
+  functions.logger.log(
+      `${label}: `,
+      util.inspect(data, {showHidden: false, depth: null}),
+  )
   return data
 }
 
@@ -153,9 +157,9 @@ const addItem = async (properties) => {
       parent: {database_id: DATABASE_ID},
       properties,
     })
-    console.log('Entry added.')
+    functions.logger.log('Entry added.')
   } catch (error) {
-    console.error(error.body)
+    functions.logger.error(error.body)
   }
 }
 
@@ -172,7 +176,7 @@ const queryDatabase = async () => {
     })
     return response.results || []
   } catch (error) {
-    console.error(error.body)
+    functions.logger.error(error.body)
   }
 }
 
