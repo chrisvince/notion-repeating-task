@@ -44,7 +44,7 @@ const convertDailyTemplateToTaskInstance = item => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
-  const daysFromCreated = createdAt.diff(moment(), 'days')
+  const daysFromCreated = moment().diff(createdAt, 'days')
   const repeatEvery = item.properties[REPEAT_EVERY_PROPERTY_NAME].number || 1
   const shouldCreate = daysFromCreated % repeatEvery === 0
   if (!shouldCreate) return null
@@ -55,7 +55,7 @@ const convertWeeklyTemplateToTaskInstance = item => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
-  const weeksFromCreated = createdAt.diff(moment(), 'weeks')
+  const weeksFromCreated = moment().diff(createdAt, 'weeks')
   const repeatEvery = item.properties[REPEAT_EVERY_PROPERTY_NAME].number || 1
   const isMatchingWeek = weeksFromCreated % repeatEvery === 0
   if (!isMatchingWeek) return null
@@ -75,7 +75,7 @@ const convertMonthlyTemplateToTaskInstance = item => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
-  const monthsFromCreated = createdAt.diff(moment(), 'months')
+  const monthsFromCreated = moment().diff(createdAt, 'months')
   const repeatEvery = item.properties[REPEAT_EVERY_PROPERTY_NAME].number || 1
   const isMatchingMonths = monthsFromCreated % repeatEvery === 0
   if (!isMatchingMonths) return null
