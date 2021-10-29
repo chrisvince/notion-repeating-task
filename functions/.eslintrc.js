@@ -13,7 +13,8 @@ module.exports = {
     'sourceType': 'module',
   },
   rules: {
-    quotes: ['error', 'single'],
-    semi: ['error', 'never'],
+    'quotes': ['error', 'single'],
+    'semi': ['error', 'never'],
+    'arrow-parens': ['error', 'as-needed'],
   },
 }

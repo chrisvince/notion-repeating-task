@@ -40,7 +40,7 @@ const dataRemovalProperties = DATA_REMOVAL_KEYS.reduce((acc, key) => ({
   [key]: undefined,
 }), {})
 
-const convertDailyTemplateToTaskInstance = (item) => {
+const convertDailyTemplateToTaskInstance = item => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
@@ -51,7 +51,7 @@ const convertDailyTemplateToTaskInstance = (item) => {
   return item
 }
 
-const convertWeeklyTemplateToTaskInstance = (item) => {
+const convertWeeklyTemplateToTaskInstance = item => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
@@ -62,7 +62,7 @@ const convertWeeklyTemplateToTaskInstance = (item) => {
   const nowDay = moment().day()
   const defaultDays = [createdAt.day()]
   const repeatDaysProperty = item.properties[REPEAT_DAYS_WEEKLY_PROPERTY_NAME]
-      .multi_select.map((x) => DAYS[x.name])
+      .multi_select.map(x => DAYS[x.name])
   const repeatDays = (
     repeatDaysProperty.length ? repeatDaysProperty : defaultDays
   )
@@ -71,7 +71,7 @@ const convertWeeklyTemplateToTaskInstance = (item) => {
   return item
 }
 
-const convertMonthlyTemplateToTaskInstance = (item) => {
+const convertMonthlyTemplateToTaskInstance = item => {
   const createdAt = (
     moment(item.properties[CREATED_AT_PROPERTY_NAME].created_time)
   )
@@ -83,7 +83,7 @@ const convertMonthlyTemplateToTaskInstance = (item) => {
   const defaultDates = [createdAt.date()]
   const repeatDatesProperty = (
     item.properties[REPEAT_DATES_MONTHLY_PROPERTY_NAME]
-        .multi_select.map((x) => parseInt(x.name, 10))
+        .multi_select.map(x => parseInt(x.name, 10))
   )
   const repeatDates = (
       repeatDatesProperty.length ? repeatDatesProperty : defaultDates
@@ -99,19 +99,17 @@ const convertTemplateToTaskInstance = (item, frequency) => ({
   Monthly: convertMonthlyTemplateToTaskInstance,
 }[frequency]?.(item))
 
-const convertTemplatesToTaskInstances = (
-  (items) => items?.reduce((acc, item) => {
-    const repeatFrequency = (
-      item.properties[REPEAT_FREQUENCY_PROPERTY_NAME]?.select?.name
-    )
-    if (!repeatFrequency) return acc
-    const taskInstance = convertTemplateToTaskInstance(item, repeatFrequency)
-    if (!taskInstance) return acc
-    return [...acc, taskInstance]
-  }, [])
-)
+const convertTemplatesToTaskInstances = items => items?.reduce((acc, item) => {
+  const repeatFrequency = (
+    item.properties[REPEAT_FREQUENCY_PROPERTY_NAME]?.select?.name
+  )
+  if (!repeatFrequency) return acc
+  const taskInstance = convertTemplateToTaskInstance(item, repeatFrequency)
+  if (!taskInstance) return acc
+  return [...acc, taskInstance]
+}, [])
 
-const stripPropertyIdAndType = (items) => items?.map((item) => ({
+const stripPropertyIdAndType = items => items?.map(item => ({
   ...item,
   properties: {
     ...item.properties,
@@ -125,7 +123,7 @@ const createTaskInstancesFromTemplates = pipe(
     stripPropertyIdAndType,
 )
 
-const manipulateProperties = (items) => items?.map((item) => ({
+const manipulateProperties = items => items?.map(item => ({
   ...item,
   properties: {
     ...item.properties,
@@ -135,7 +133,7 @@ const manipulateProperties = (items) => items?.map((item) => ({
   },
 }))
 
-const logStage = (label) => (data) => {
+const logStage = label => data => {
   functions.logger.log(
       `${label}: `,
       util.inspect(data, {showHidden: false, depth: null}),
@@ -151,7 +149,7 @@ const processData = pipe(
     logStage('manipulateProperties completed'),
 )
 
-const addItem = async (properties) => {
+const addItem = async properties => {
   try {
     await notion.pages.create({
       parent: {database_id: DATABASE_ID},
@@ -185,7 +183,6 @@ exports.createNotionRepeatedTasks =
       .timeZone('America/New_York').onRun(async () => {
         const data = await queryDatabase()
         const items = processData(data)
-        const createPromises = items.map((item) => addItem(item.properties))
+        const createPromises = items.map(item => addItem(item.properties))
         await Promise.all(createPromises)
-        return null
       })
